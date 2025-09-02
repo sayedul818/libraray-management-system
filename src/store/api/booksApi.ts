@@ -46,41 +46,47 @@ export interface BorrowSummary {
   totalQuantityBorrowed: number;
 }
 
-// Configure your backend URL here
+// Base API URL
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const booksApi = createApi({
   reducerPath: 'booksApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: BASE_URL,
-  }),
+  baseQuery: fetchBaseQuery({ baseUrl: BASE_URL }),
   tagTypes: ['Book', 'BorrowSummary'],
   endpoints: (builder) => ({
-    // Book endpoints
+    // Get all books
     getAllBooks: builder.query<Book[], void>({
       query: () => '/books',
+      transformResponse: (response: { data: Book[] }) => response.data, // extract array
       providesTags: ['Book'],
     }),
+    // Get book by ID
     getBookById: builder.query<Book, string>({
       query: (id) => `/books/${id}`,
+      transformResponse: (response: { data: Book }) => response.data,
       providesTags: (result, error, id) => [{ type: 'Book', id }],
     }),
+    // Create new book
     createBook: builder.mutation<Book, CreateBookRequest>({
       query: (book) => ({
         url: '/books',
         method: 'POST',
         body: book,
       }),
+      transformResponse: (response: { data: Book }) => response.data,
       invalidatesTags: ['Book'],
     }),
+    // Update book
     updateBook: builder.mutation<Book, UpdateBookRequest>({
       query: ({ id, ...book }) => ({
         url: `/books/${id}`,
-        method: 'PUT',
+        method: 'PATCH', // PATCH is safer than PUT for partial updates
         body: book,
       }),
+      transformResponse: (response: { data: Book }) => response.data,
       invalidatesTags: (result, error, { id }) => [{ type: 'Book', id }, 'Book'],
     }),
+    // Delete book
     deleteBook: builder.mutation<void, string>({
       query: (id) => ({
         url: `/books/${id}`,
@@ -88,7 +94,7 @@ export const booksApi = createApi({
       }),
       invalidatesTags: ['Book'],
     }),
-    // Borrow endpoints
+    // Borrow a book
     borrowBook: builder.mutation<void, BorrowRequest>({
       query: (borrowData) => ({
         url: '/borrows',
@@ -97,8 +103,10 @@ export const booksApi = createApi({
       }),
       invalidatesTags: ['Book', 'BorrowSummary'],
     }),
+    // Borrow summary
     getBorrowSummary: builder.query<BorrowSummary[], void>({
       query: () => '/borrows/summary',
+      transformResponse: (response: { data: BorrowSummary[] }) => response.data,
       providesTags: ['BorrowSummary'],
     }),
   }),
